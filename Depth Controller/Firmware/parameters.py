@@ -78,14 +78,15 @@ Ts = 0.005      # 200 Hz
 # ================================================================
 NUM_INNER = [ 2.104167,  0.041667, -2.062500]
 DEN_INNER = [ 1.777778, -0.777778]
-K_OUTER   = 1.0
+K_OUTER   = 0.1 # tuned via simulation
+K_D = 4.3 # derivative damping on depth rate
 
 # ================================================================
 # VELOCITY FILTER
 # Cutoff: 20 rad/s, recalculated for 200Hz sample rate
 # ================================================================
 ALPHA_VEL = math.exp(-20.0 * Ts)       # = 0.9048
-
+ALPHA_DR  = math.exp(-2.0  * Ts)       # = 0.9900  depth rate filter     (2 rad/s)
 # ================================================================
 # STARTUP DIAGNOSTIC
 # ================================================================
@@ -101,6 +102,8 @@ print(f"Voltage ceiling:     ±{V_SAFE_MAX:.4f} V  (2A × Ra)")
 print(f"Max piston vel:      {MAX_STROKE_VELOCITY*1000:.2f} mm/s")
 print(f"Sample rate:         {1/Ts:.0f} Hz")
 print(f"Inner PM (discrete): 58.42°")
-print(f"Outer PM (discrete): 88.98°")
+print(f"Outer PM (discrete): 89.90°")
+print(f"  K_outer:              {K_OUTER}")
+print(f"  K_D (depth rate):     {K_D}")
 print(f"Velocity filter α:   {ALPHA_VEL:.4f}")
 print("=" * 52)

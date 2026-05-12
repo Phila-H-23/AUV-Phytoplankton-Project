@@ -36,8 +36,8 @@ import time
 from sensor_interface import AS5600, MS5837
 from motor_driver import BTS7960
 from parameters import (Ks, Ts, V_SAFE_MAX, V_SAFE_MIN,
-                        NUM_INNER, DEN_INNER, K_OUTER,
-                        ALPHA_VEL, STROKE_MAX, STROKE_MIN,
+                        NUM_INNER, DEN_INNER, K_OUTER, K_D,
+                        ALPHA_VEL,ALPHA_DR, STROKE_MAX, STROKE_MIN,
                         MAX_STROKE_VELOCITY, STROKE_EQUILIBRIUM,
                         DEPTH_MIN_OP, DEPTH_MAX_OP)
  
@@ -82,7 +82,8 @@ e_prev1 = 0.0   # inner loop error: e[k-1]
 e_prev2 = 0.0   # inner loop error: e[k-2]
 u_prev1 = 0.0   # inner loop output: u[k-1]
 u_prev2 = 0.0   # inner loop output: u[k-2]
- 
+depth_prev = 0.0    # for derivative term on depth rate
+depth_rate_filt  = 0.0   # low-pass filtered depth rate (2 rad/s cutoff)
 # ================================================================
 # FAULT FLAG
 # Latches True on any safety limit violation
@@ -124,48 +125,47 @@ def control_step(target_depth, meas_depth, shaft_pos, shaft_vel):
         voltage      : float -- motor voltage command [V]
         shaft_vel_ref: float -- velocity reference sent to inner loop [m/s]
     """
-    global e_prev1, e_prev2, u_prev1, u_prev2
- 
-    # ---- Outer loop: depth error -> shaft velocity reference ----
-    # Positive error = too shallow = need to retract = positive shaft vel
+    global e_prev1, e_prev2, u_prev1, u_prev2, depth_prev, depth_rate_filt
+
+    # ---- Depth rate estimate: differentiate then low-pass filter ----
+    # Raw differentiation at 200Hz amplifies MS5837 noise severely.
+    # ALPHA_DR = exp(-2 * Ts) = 0.9900 gives 2 rad/s cutoff --
+    # fast enough to track real depth changes, slow enough to reject noise.
+    depth_rate_raw  = (meas_depth - depth_prev) / Ts
+    depth_rate_filt = ALPHA_DR * depth_rate_filt \
+                    + (1.0 - ALPHA_DR) * depth_rate_raw
+    depth_prev      = meas_depth
+
+    # ---- Outer loop: PD on depth ----------------------------
+    # K_OUTER = 0.1  proportional -- drives toward target
+    # K_D     = 4.3  derivative   -- brakes approach, prevents overshoot
     depth_error   = target_depth - meas_depth
-    shaft_vel_ref = K_OUTER * depth_error
- 
-    # ---- Constraint 1: Stroke limits ----------------------------
-    # At fully retracted end: cannot sink further
+    shaft_vel_ref = K_OUTER * depth_error - K_D * depth_rate_filt
+
+    # ---- Stroke limits --------------------------------------
     if shaft_pos >= STROKE_MAX and shaft_vel_ref > 0:
         shaft_vel_ref = 0.0
-    # At fully extended end: cannot rise further
     if shaft_pos <= STROKE_MIN and shaft_vel_ref < 0:
         shaft_vel_ref = 0.0
- 
-    # ---- Constraint 2: Physical velocity ceiling ----------------
-    # Motor cannot physically move piston faster than MAX_STROKE_VELOCITY
-    # Clamping prevents integrator windup from demanding impossible speeds
+
+    # ---- Velocity ceiling -----------------------------------
     shaft_vel_ref = max(-MAX_STROKE_VELOCITY,
                         min( MAX_STROKE_VELOCITY, shaft_vel_ref))
- 
-    # ---- Inner loop: difference equation ------------------------
-    # u[k] = DEN[0]*u[k-1] + DEN[1]*u[k-2]
-    #       + NUM[0]*e[k] + NUM[1]*e[k-1] + NUM[2]*e[k-2]
+
+    # ---- Inner loop difference equation --------------------
     e_k = shaft_vel_ref - shaft_vel
     u_k = (DEN_INNER[0] * u_prev1
          + DEN_INNER[1] * u_prev2
          + NUM_INNER[0] * e_k
          + NUM_INNER[1] * e_prev1
          + NUM_INNER[2] * e_prev2)
- 
-    # ---- Constraint 3: Current limit (voltage ceiling) ----------
-    # V_SAFE_MAX = I_LIMIT x Ra = 3A x 0.714 = 2.142V
-    # Any voltage above this would cause motor to exceed 3A
+
+    # ---- Current limit -------------------------------------
     u_k = max(V_SAFE_MIN, min(V_SAFE_MAX, u_k))
- 
-    # ---- Shift controller memory --------------------------------
-    # Must happen AFTER using the previous values above
-    # Order: always update older slot first to avoid overwriting needed value
+
+    # ---- Shift memory --------------------------------------
     e_prev2 = e_prev1;  e_prev1 = e_k
     u_prev2 = u_prev1;  u_prev1 = u_k
- 
     return u_k, shaft_vel_ref
  
 # ================================================================
