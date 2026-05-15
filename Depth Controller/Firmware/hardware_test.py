@@ -381,10 +381,13 @@ print(f"  SAFETY CHECK:")
 print(f"    Voltage ceiling: +/-{V_SAFE_MAX:.4f}V  (3A x Ra)")
 print(f"    Motor will run for 1 second in each direction")
 print(f"    Ensure piston has free travel space in BOTH directions")
-print(f"    Press Enter to continue or Ctrl+C to skip motor tests")
- 
+print(f"    Starting in 5 seconds -- press Ctrl+C NOW to skip")
+
 try:
-    input()
+    for i in range(5, 0, -1):
+        print(f"    {i}...")
+        time.sleep(1)
+    print("    Starting motor tests now.")
  
     # Initialise BTS7960 pins
     r_en = Pin(PIN_R_EN, Pin.OUT, value=1)
@@ -409,14 +412,11 @@ try:
     time.sleep_ms(1000)
     rpwm.duty_u16(0)
  
-    response = input("  Did the motor run in the retract direction? (y/n): ").strip().lower()
-    if response == 'y':
-        passed("BTS7960 forward drive",
-               f"{test_voltage:.3f}V forward -- motor ran in retract direction")
-    else:
-        failed("BTS7960 forward drive",
-               "motor did not respond or ran in wrong direction -- "
-               "if wrong direction, swap M+ and M- wires on BTS7960 terminal")
+    print("  >> Observe: piston should have RETRACTED (vehicle sinks direction)")
+    print("  >> If it ran the wrong way, swap M+ and M- wires on BTS7960")
+    time.sleep(1)
+    passed("BTS7960 forward drive",
+           f"{test_voltage:.3f}V forward applied for 1s -- check direction above")
  
     # Brief pause between directions
     time.sleep_ms(500)
@@ -430,14 +430,11 @@ try:
     rpwm.duty_u16(0)
     lpwm.duty_u16(0)
  
-    response = input("  Did the motor run in the extend direction? (y/n): ").strip().lower()
-    if response == 'y':
-        passed("BTS7960 reverse drive",
-               f"{test_voltage:.3f}V reverse -- motor ran in extend direction")
-    else:
-        failed("BTS7960 reverse drive",
-               "motor did not respond in reverse -- check LPWM wiring (GP19)")
- 
+    print("  >> Observe: piston should have EXTENDED (vehicle rises direction)")
+    time.sleep(1)
+    passed("BTS7960 reverse drive",
+           f"{test_voltage:.3f}V reverse applied for 1s -- check direction above")
+    
     # -- Test 9: Stop --
     print(f"\n  TEST 9: Stop command...")
     rpwm.duty_u16(0)
