@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ballast Ring Calculator v2</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f4f1eb;
+  --bg2:#eae6dd;
+  --bg3:#ddd8cd;
+  --ink:#1a1612;
+  --ink2:#4a4540;
+  --ink3:#8a837a;
+  --rule:#c8c0b4;
+  --accent:#c0392b;
+  --accent2:#e74c3c;
+  --blue:#1a4a8a;
+  --green:#1a6a3a;
+  --amber:#a06010;
+  --mono:'IBM Plex Mono',monospace;
+  --sans:'IBM Plex Sans',sans-serif;
+}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:13px;line-height:1.5;padding:12px 24px;min-height:100vh}
+/* paper texture */
+body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='4' height='4' fill='%23f4f1eb'/%3E%3Crect x='0' y='0' width='1' height='1' fill='%23e8e4dc' opacity='0.4'/%3E%3C/svg%3E");pointer-events:none;z-index:0}
+
+.wrap{position:relative;z-index:1;max-width:1400px;margin:0 auto}
+
+/* header */
+header{border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:14px}
+.hdr-top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{font-family:var(--mono);font-size:18px;font-weight:700;letter-spacing:-0.3px}
+.hdr-badge{font-family:var(--mono);font-size:10px;color:var(--ink3);border:1px solid var(--rule);padding:2px 8px;border-radius:2px}
+.hdr-sub{font-size:11px;color:var(--ink3);margin-top:5px;font-family:var(--mono)}
+.hdr-sub span{color:var(--ink2);font-weight:500}
+
+/* layout */
+.layout{display:grid;grid-template-columns:500px 1fr 420px;gap:14px;align-items:start}
+@media(max-width:1000px){.layout{grid-template-columns:320px 1fr}}
+@media(max-width:640px){.layout{grid-template-columns:1fr}}
+
+/* panels */
+.panel{background:var(--bg2);border:1px solid var(--rule);border-radius:3px;padding:9px 12px;margin-bottom:10px}
+.ptitle{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:2.5px;color:var(--ink3);padding-bottom:8px;margin-bottom:12px;border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:8px}
+.ptitle-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+
+/* inputs */
+.field{margin-bottom:8px}
+.field:last-child{margin-bottom:0}
+.label-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.label-row label{font-size:11px;color:var(--ink2);font-family:var(--mono)}
+.val-badge{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--accent);min-width:55px;text-align:right}
+input[type=range]{width:100%;-webkit-appearance:none;height:3px;background:var(--rule);border-radius:2px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid var(--bg2);box-shadow:0 1px 3px rgba(0,0,0,0.2)}
+input[type=number]{width:62px;background:var(--bg);border:1px solid var(--rule);border-radius:2px;color:var(--accent);font-family:var(--mono);font-size:12px;font-weight:700;padding:2px 5px;outline:none;-moz-appearance:textfield;text-align:right}
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+input[type=number]:focus{border-color:var(--accent)}
+#hardware-controls,#solid-controls{transition:opacity 0.15s}
+select{width:100%;background:var(--bg);border:1px solid var(--rule);color:var(--ink);font-family:var(--mono);font-size:11px;padding:6px 8px;border-radius:2px;outline:none;cursor:pointer;appearance:none}
+select:focus{border-color:var(--accent)}
+.field-note{font-size:10px;color:var(--ink3);margin-top:3px;font-family:var(--mono)}
+.fixed-val{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--blue);background:var(--bg3);border:1px solid var(--rule);padding:4px 8px;border-radius:2px;display:inline-block}
+
+/* piston toggle */
+.toggle-row{display:flex;gap:0;margin-bottom:12px;border:1px solid var(--rule);border-radius:2px;overflow:hidden}
+.tog-btn{flex:1;padding:6px;font-family:var(--mono);font-size:10px;text-align:center;cursor:pointer;border:none;background:var(--bg);color:var(--ink3);transition:all 0.15s;letter-spacing:0.5px}
+.tog-btn.active{background:var(--ink);color:var(--bg);font-weight:600}
+
+/* right column */
+.left-col{display:flex;flex-direction:column}.mid-col{display:flex;flex-direction:column;gap:8px}.right-col{display:flex;flex-direction:column;gap:8px}
+
+/* SVG viz */
+#viz-wrap{background:var(--bg2);border:1px solid var(--rule);border-radius:3px;padding:6px;position:relative}
+.viz-label{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--ink3);margin-bottom:6px}
+
+/* metrics grid */
+.metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.metric{background:var(--bg2);border:1px solid var(--rule);border-radius:3px;padding:7px 10px;border-left:3px solid var(--rule);transition:border-left-color 0.3s}
+.metric.ok{border-left-color:var(--green)}
+.metric.warn{border-left-color:var(--amber)}
+.metric.bad{border-left-color:var(--accent)}
+.m-label{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--ink3);margin-bottom:4px}
+.m-val{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--ink)}
+.m-unit{font-size:10px;font-weight:400;color:var(--ink3);margin-left:2px}
+.m-st{font-family:var(--mono);font-size:9px;margin-top:2px}
+.ok .m-st{color:var(--green)} .warn .m-st{color:var(--amber)} .bad .m-st{color:var(--accent)}
+
+/* verdict */
+#verdict{border-radius:3px;padding:8px 12px;font-family:var(--mono);font-size:11px;font-weight:500;border:1px solid;transition:all 0.3s}
+#verdict.ok{background:#e8f5ed;border-color:var(--green);color:var(--green)}
+#verdict.warn{background:#fef5e4;border-color:var(--amber);color:var(--amber)}
+#verdict.bad{background:#fdecea;border-color:var(--accent);color:var(--accent)}
+
+/* dimension summary */
+.dim-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px}
+.dim-table th{text-align:left;padding:4px 8px;background:var(--bg3);font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--ink3);border-bottom:1px solid var(--rule)}
+.dim-table td{padding:5px 8px;border-bottom:1px solid var(--rule)}
+.dim-table tr:last-child td{border-bottom:none}
+.dim-table td:last-child{font-weight:600;color:var(--accent);text-align:right}
+
+/* report */
+.report-box{background:var(--bg3);border:1px solid var(--rule);border-radius:2px;padding:12px 14px;font-family:var(--mono);font-size:10.5px;line-height:1.85;color:var(--ink2);white-space:pre-wrap}
+.report-box .hi{color:var(--ink);font-weight:600}
+.report-box .val{color:var(--accent);font-weight:600}
+.report-box .good{color:var(--green);font-weight:600}
+.report-box .bad{color:var(--accent);font-weight:600}
+.report-box .rule{color:var(--rule)}
+
+hr{border:none;border-top:1px solid var(--rule);margin:4px 0}
+.section-title{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--ink3);margin-bottom:6px}
+</style>
+<div class="wrap">
+
+<header>
+  <div class="hdr-top">
+    <h1>Ballast Ring Calculator</h1>
+    <span class="hdr-badge">EEE4113F // Group 1 // 2026</span>
+  </div>
+  <div class="hdr-sub">
+    Float: <span>Ø120 mm</span> &nbsp;·&nbsp; System mass (no ring): <span id="hdr-msys">~1,630 g</span> (PLA 15% infill) &nbsp;·&nbsp; <span id="hdr-sensor-note">sensors included</span> &nbsp;·&nbsp; ID fixed at <span>Ø126 mm</span>
+  </div>
+</header>
+
+<!-- ═══ DASHBOARD ═══ -->
+<div class="layout">
+
+  <!-- LEFT: Ring geometry + Weight mode -->
+  <div class="left-col">
+
+    <div class="panel">
+      <div class="ptitle"><span class="ptitle-dot" style="background:var(--accent)"></span>Ring geometry</div>
+
+      <div class="field">
+        <div class="label-row"><label>Inner diameter (ID)</label><span class="fixed-val">126 mm (fixed)</span></div>
+        <div class="field-note">Fits over ext. cylinder OD (120 mm) + 3 mm wall clearance.</div>
+      </div>
+
+      <div class="field">
+        <div class="label-row"><label>Outer diameter (OD)</label><span class="val-badge" id="ro-val">160 mm</span></div>
+        <input type="range" id="ro" min="128" max="210" value="160" step="1">
+        <div class="field-note">Ring wall = (OD − ID) / 2</div>
+      </div>
+
+      <div class="field" id="rh-field">
+        <div class="label-row"><label>Ring height h</label><span class="val-badge" id="rh-val">20 mm</span></div>
+        <input type="range" id="rh" min="3" max="80" value="20" step="1">
+      </div>
+
+      <div class="field" id="nrings-field">
+        <div class="label-row"><label>Number stacked</label><span class="val-badge" id="nrings-val">1</span></div>
+        <input type="range" id="nrings" min="1" max="30" value="1" step="1">
+        <div class="field-note">Stack identical rings at the bottom for more mass.</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle"><span class="ptitle-dot" style="background:var(--blue)"></span>Weight mode</div>
+
+      <div class="field">
+        <div class="toggle-row" style="margin-bottom:10px">
+          <button class="tog-btn active" id="btn-solid" onclick="setMode('solid')">Solid ring</button>
+          <button class="tog-btn" id="btn-hardware" onclick="setMode('hardware')">Loose hardware</button>
+          <button class="tog-btn" id="btn-hybrid" onclick="setMode('hybrid')">Bolts + sand</button>
+        </div>
+      </div>
+
+      <!-- SOLID MODE -->
+      <div id="solid-controls">
+        <div class="field">
+          <div class="label-row"><label>Material</label></div>
+          <select id="mat">
+            <option value="7960,true">316 Stainless Steel — 7,960 kg/m³ ✓ best</option>
+            <option value="7850,true">Mild Steel (S235/A36) — 7,850 kg/m³  ✓ easy</option>
+            <option value="8500,false">Brass (CuZn30) — 8,500 kg/m³  ⚠ check availability</option>
+            <option value="1190,true">Perspex / Acrylic (PMMA) — 1,190 kg/m³</option>
+            <option value="850,true">Hardboard (MDF) — 850 kg/m³</option>
+            <option value="1920,true">Building sand (packed, wet) — 1,920 kg/m³</option>
+            <option value="1240,true">PLA 100% infill — 1,240 kg/m³</option>
+            <option value="2700,true">6061 Aluminium — 2,700 kg/m³</option>
+          </select>
+          <div class="field-note" id="mat-note">Corrosion-resistant, seawater-safe. Recommended.</div>
+        </div>
+      </div>
+
+      <!-- HARDWARE MODE -->
+      <div id="hardware-controls" style="display:none">
+        <div class="field-note" style="margin-bottom:8px">Bolts screwed symmetrically on PCD (midpoint of ID and OD). Count calculated from how many fit.</div>
+        <div class="field">
+          <div class="label-row"><label>Hardware material</label></div>
+          <select id="hw-mat">
+            <option value="7960">A4 Stainless Steel — 7,960 kg/m³  ✓ seawater safe</option>
+            <option value="7850">Mild steel — 7,850 kg/m³  (coat to prevent rust)</option>
+            <option value="8500">Brass — 8,500 kg/m³</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="label-row"><label>Bolt/nut size</label></div>
+          <select id="hw-size">
+            <option value="M4,4,1.5">M4 — nut width 7 mm, ~1.5 g</option>
+            <option value="M5,5,3">M5 — nut width 8 mm, ~3 g</option>
+            <option value="M6,6,5">M6 — nut width 10 mm, ~5 g</option>
+            <option value="M8,8,10" selected>M8 — nut width 13 mm, ~10 g</option>
+            <option value="M10,10,20">M10 — nut width 17 mm, ~20 g</option>
+            <option value="M12,12,35">M12 — nut width 19 mm, ~35 g</option>
+            <option value="M16,16,75">M16 — nut width 24 mm, ~75 g</option>
+            <option value="M20,20,120">M20 — nut width 30 mm, ~120 g</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="label-row"><label>Rows of bolts (axial)</label><span class="val-badge" id="hw-rows-val">1</span></div>
+          <input type="range" id="hw-rows" min="1" max="5" value="1" step="1">
+        </div>
+        <div style="background:var(--bg3);border:1px solid var(--rule);border-radius:2px;padding:8px 10px;font-family:var(--mono);font-size:10px;color:var(--ink3);line-height:1.9;margin-top:4px">
+          PCD: <span id="hw-pcd" style="color:var(--ink2)">—</span> mm &nbsp;·&nbsp;
+          Bolts/row: <span id="hw-count" style="color:var(--accent);font-weight:700">—</span> &nbsp;·&nbsp;
+          Total: <span id="hw-total" style="color:var(--accent);font-weight:700">—</span><br>
+          Per bolt: <span id="hw-unit-mass" style="color:var(--ink2)">—</span> g &nbsp;·&nbsp;
+          Total mass: <span id="hw-total-mass" style="color:var(--accent);font-weight:700">—</span> g
+        </div>
+      </div>
+
+      <!-- HYBRID MODE -->
+      <div id="hybrid-controls" style="display:none">
+        <div class="field-note" style="margin-bottom:8px">Fixed: 1 pack M10×100 bolts (10 bolts, ~720 g) on PCD. Remaining groove filled with sand (ρ = 1,920 kg/m³). Groove height = ring height × rings stacked (set above).</div>
+        <div style="background:var(--bg3);border:1px solid var(--rule);border-radius:2px;padding:8px 10px;font-family:var(--mono);font-size:10px;color:var(--ink3);line-height:1.9;margin-top:4px">
+          Groove vol: <span id="hyb-vgroove" style="color:var(--ink2)">—</span> cm³ &nbsp;·&nbsp;
+          Bolts displace: <span id="hyb-vbolts" style="color:var(--ink2)">—</span> cm³<br>
+          Sand vol: <span id="hyb-vsand" style="color:var(--ink2)">—</span> cm³ &nbsp;·&nbsp;
+          Sand mass: <span id="hyb-msand" style="color:var(--accent);font-weight:700">—</span> g<br>
+          Bolt mass (fixed): <span style="color:var(--accent);font-weight:700">720 g</span> &nbsp;·&nbsp;
+          <b>Total: <span id="hyb-total" style="color:var(--accent);font-weight:700">—</span> g</b>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle"><span class="ptitle-dot" style="background:var(--ink3)"></span>Zone heights</div>
+      <div class="field">
+        <div class="label-row"><label>Top cap + electronics</label><span style="font-size:10px;color:var(--ink3)">mm</span></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="range" id="lElec" min="80" max="250" value="115" step="1" style="flex:1">
+          <input type="number" id="lElec-num" min="80" max="250" value="115">
+        </div>
+      </div>
+      <div class="field">
+        <div class="label-row"><label>Sensor + actuator zone</label><span style="font-size:10px;color:var(--ink3)">mm</span></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="range" id="lAct" min="100" max="400" value="213" step="1" style="flex:1">
+          <input type="number" id="lAct-num" min="100" max="400" value="213">
+        </div>
+      </div>
+      <div class="field">
+        <div class="label-row"><label>External cylinder</label><span style="font-size:10px;color:var(--ink3)">mm</span></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="range" id="lExt" min="50" max="350" value="200" step="1" style="flex:1">
+          <input type="number" id="lExt-num" min="50" max="350" value="200">
+        </div>
+      </div>
+      <table class="dim-table" style="margin-top:8px">
+        <tr><td><b>Total height</b></td><td id="td-total">528 mm</td></tr>
+        <tr><td>Float diameter</td><td>120 mm (fixed)</td></tr>
+        <tr><td>Piston stroke</td><td id="td-stroke">164.4 mm</td></tr>
+        <tr><td>Swept volume</td><td id="td-swept">1,832 mL</td></tr>
+        <tr><td>Total displacement</td><td id="td-disp">6,865 mL</td></tr>
+      </table>
+    </div>
+
+  </div><!-- end left-col -->
+
+  <!-- MIDDLE: Toggles + all results -->
+  <div class="mid-col">
+
+    <!-- Piston + sensor toggles stacked vertically -->
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="panel" style="padding:8px 12px;margin-bottom:0">
+        <div class="ptitle"><span class="ptitle-dot" style="background:var(--blue)"></span>Piston state</div>
+        <div class="toggle-row" style="margin-bottom:0">
+          <button class="tog-btn active" id="btn-ext" onclick="setPiston('extended')">Extended (float)</button>
+          <button class="tog-btn" id="btn-ret" onclick="setPiston('retracted')">Retracted (sink)</button>
+        </div>
+      </div>
+      <div class="panel" style="padding:8px 12px;margin-bottom:0">
+        <div class="ptitle"><span class="ptitle-dot" style="background:var(--green)"></span>Sensor mass</div>
+        <div class="toggle-row" style="margin-bottom:4px">
+          <button class="tog-btn active" id="btn-sens-on" onclick="setSensors(true)">With sensors</button>
+          <button class="tog-btn" id="btn-sens-off" onclick="setSensors(false)">Without sensors</button>
+        </div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--ink3)">
+          ECO: 400g · TRN100: 35g · GNSS: 2.75g = <span id="sensor-total" style="color:var(--accent);font-weight:700">437.75g</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3-col metrics grid -->
+    <div class="metrics" id="metrics-grid" style="margin-top:10px">
+      <div class="metric" id="m-mass">
+        <div class="m-label">Ring mass</div>
+        <div class="m-val"><span id="out-mass">—</span><span class="m-unit">g</span></div>
+        <div class="m-st" id="st-mass"></div>
+      </div>
+      <div class="metric" id="m-buoy">
+        <div class="m-label">Net buoyancy</div>
+        <div class="m-val"><span id="out-buoy">—</span><span class="m-unit">N</span></div>
+        <div class="m-st" id="st-buoy"></div>
+      </div>
+      <div class="metric" id="m-sep">
+        <div class="m-label">CB−CM sep.</div>
+        <div class="m-val"><span id="out-sep">—</span><span class="m-unit">%L</span></div>
+        <div class="m-st" id="st-sep"></div>
+      </div>
+      <div class="metric" id="m-cm">
+        <div class="m-label">CM from bottom</div>
+        <div class="m-val"><span id="out-cm">—</span><span class="m-unit">mm</span></div>
+        <div class="m-st" id="st-cm"></div>
+      </div>
+      <div class="metric" id="m-vol">
+        <div class="m-label">Ring volume</div>
+        <div class="m-val"><span id="out-vol">—</span><span class="m-unit">cm³</span></div>
+        <div class="m-st" id="st-vol"></div>
+      </div>
+      <div class="metric" id="m-wall">
+        <div class="m-label">Wall thickness</div>
+        <div class="m-val"><span id="out-wall">—</span><span class="m-unit">mm</span></div>
+        <div class="m-st" id="st-wall"></div>
+      </div>
+      <div class="metric" id="m-eq" style="border-left-color:var(--blue)">
+        <div class="m-label">Equilibrium pos.</div>
+        <div class="m-val"><span id="out-eq">—</span><span class="m-unit">mm</span></div>
+        <div class="m-st" id="st-eq" style="color:var(--blue)"></div>
+      </div>
+      <div class="metric" id="m-eq-pct" style="border-left-color:var(--blue)">
+        <div class="m-label">Eq. (% stroke)</div>
+        <div class="m-val"><span id="out-eq-pct">—</span><span class="m-unit">%</span></div>
+        <div class="m-st" id="st-eq-pct" style="color:var(--blue)"></div>
+      </div>
+      <div class="metric" id="m-eq-water" style="border-left-color:var(--blue)">
+        <div class="m-label">Water at eq.</div>
+        <div class="m-val"><span id="out-eq-water">—</span><span class="m-unit">mL</span></div>
+        <div class="m-st" id="st-eq-water" style="color:var(--blue)"></div>
+      </div>
+    </div>
+
+  </div><!-- end mid-col -->
+
+  <!-- RIGHT: Diagram + verdict -->
+  <div class="right-col">
+
+    <div id="viz-wrap">
+      <div class="viz-label">Cross-section — to scale (vertical)</div>
+      <svg id="viz" width="100%" viewBox="0 0 300 480" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+
+    <div id="verdict">—</div>
+
+  </div><!-- end right-col -->
+
+</div><!-- end layout -->
+
+<!-- ═══ REPORT ═══ -->
+<div style="margin-top:14px">
+  <div class="section-title">Calculations</div>
+  <div class="report-box" id="report"></div>
+</div>
+
+</div><!-- end wrap -->
+
+<script>
+window.onerror = function(msg, src, line, col, err) {
+  document.getElementById('verdict').className = 'bad';
+  document.getElementById('verdict').textContent = '⚠ JS Error: ' + msg + ' (line ' + line + ')';
+  return false;
+};
+// ── Constants (all SI unless noted) ──
+const G = 9.81;
+const RHO_SW = 1025; // Antarctic seawater kg/m3
+
+// Float geometry (fixed)
+const L_TOTAL = 0.607;      // m (607 mm)
+const D = 0.120;             // m (120 mm)
+const R_CYL = D / 2;        // 0.060 m
+const L_EXT = 0.200;        // m external cylinder length
+// stroke computed dynamically as lExt_mm - PISTON_H_MM
+const RI_RING = 0.063;      // m fixed inner radius (126mm ID)
+const PISTON_H_MM = 35.6;   // mm piston disk thickness
+
+// Mass budget (no ring) — updated with slicer actuals + geometry estimates
+// ── 3D printed — PETG 20% infill, 3mm walls, ρ_eff = 0.43 g/cm³ ──
+const M_TOP_ELEC= 0.057;   // top cap + electronics tube (ID120, h115mm)
+const M_SA_TOP  = 0.087;   // sensor-actuator top/sensor part (ID140, h150mm)
+const M_SA_BOT  = 0.042;   // sensor-actuator bottom/actuator part (ID161, h63mm)
+const M_EXT_CYL = 0.100;   // external cylinder (ID120, h200mm)
+const M_GUIDE   = 0.012;   // guide cylinder (ID15, h164mm)
+const M_PISTON  = 0.074;   // piston head (PETG solid, Ø58×25mm hollow)
+const M_SMALL   = 0.058;   // misc small prints + fixed nut (50+8g)
+// ── Electronics (individual BOM items) ──
+const M_MCU     = 0.021;   // RPi Pico 2W (6g) + MCU board (15g)
+const M_SDCARD  = 0.004;   // SD card module
+const M_DEPTH   = 0.003;   // MS5837-30BA depth sensor
+const M_HALL    = 0.005;   // AS5600 hall sensor + breakout
+const M_BUCK    = 0.030;   // 3× LM2596 buck modules
+const M_MOSFET  = 0.016;   // 2× MOSFET modules (XY-MOS)
+const M_CHARGER = 0.012;   // LiPo charger boost (CN3302)
+const M_LIPOPRO = 0.010;   // 3S LiPo protection board
+const M_BATMON  = 0.002;   // battery monitor IC (MAX17048)
+const M_MOTDRV  = 0.003;   // motor driver (DRV8833)
+const M_PCB     = 0.025;   // custom PCB (100×100mm FR4)
+const M_WIRING  = 0.040;   // wiring + headers + substrate
+// ── Battery & power ──
+const M_CELLS   = 0.141;   // 3× 18650 Li cells (47g each)
+const M_HOLDER  = 0.025;   // 18650 3-cell holder
+const M_XT60    = 0.010;   // XT60 connector pair
+const M_FOAM    = 0.010;   // closed-cell foam sheet
+const M_GROMMET = 0.005;   // cable grommet
+// ── Actuator mechanicals ──
+const M_MOTOR   = 0.069;   // RS PRO DC motor (datasheet)
+const M_GEARBOX = 0.050;   // worm gearbox (estimate)
+const M_SCREW   = 0.174;   // lead screw 316SS M8×440mm (calculated)
+const M_LIMITS  = 0.010;   // 2× limit switches (Omron SS-5GL)
+// ── Sealing + fasteners ──
+const M_ORINGS  = 0.015;   // all O-rings (7 total)
+const M_GREASE  = 0.005;   // Molykote 111 grease
+const M_BOLTS   = 0.030;   // M4 fasteners ~30 assorted
+const M_CRADLE  = 0.010;   // foam cradle
+const M_LOCTITE = 0.003;   // Loctite + PTFE tape
+const M_MCBH    = 0.015;   // MCBH-6 bulkhead connector
+const M_CONN    = 0.020;   // CA6GS-E connector
+// ── Sensors (toggleable) ──
+const M_ECO     = 0.400;   // ECO FLNTU phytoplankton sensor (datasheet)
+const M_TEMP    = 0.035;   // TRN100 temp sensor (SS316 probe)
+const M_GNSS    = 0.00275; // GNSS CD-PA1010D patch antenna (datasheet: 2.75g)
+// ── Base system (everything except sensors) ──
+const M_BASE = M_TOP_ELEC + M_SA_TOP + M_SA_BOT + M_EXT_CYL + M_GUIDE + M_PISTON + M_SMALL
+             + M_MCU + M_SDCARD + M_DEPTH + M_HALL + M_BUCK + M_MOSFET + M_CHARGER
+             + M_LIPOPRO + M_BATMON + M_MOTDRV + M_PCB + M_WIRING
+             + M_CELLS + M_HOLDER + M_XT60 + M_FOAM + M_GROMMET
+             + M_MOTOR + M_GEARBOX + M_SCREW + M_LIMITS
+             + M_ORINGS + M_GREASE + M_BOLTS + M_CRADLE + M_LOCTITE + M_MCBH + M_CONN;
+// M_SYS set dynamically by sensor toggle — default WITH sensors
+let M_SYS = M_BASE + M_ECO + M_TEMP + M_GNSS; // ~1.630 kg with sensors
+
+// Zone heights, CB, CM, displacement — all computed dynamically in update()
+
+// Piston state
+let pistonState = 'extended';
+let sensorsIncluded = true;
+
+function setSensors(include) {
+  sensorsIncluded = include;
+  document.getElementById('btn-sens-on').classList.toggle('active', include);
+  document.getElementById('btn-sens-off').classList.toggle('active', !include);
+  M_SYS = M_BASE + (include ? M_ECO + M_TEMP + M_GNSS : 0);
+  document.getElementById('hdr-sensor-note').textContent = include ? 'sensors included' : 'sensors excluded';
+  document.getElementById('hdr-msys').textContent = '~' + Math.round(M_SYS * 1000) + ' g';
+  update();
+}
+
+function setPiston(state) {
+  pistonState = state;
+  document.getElementById('btn-ext').classList.toggle('active', state === 'extended');
+  document.getElementById('btn-ret').classList.toggle('active', state === 'retracted');
+  update();
+}
+
+let weightMode = 'solid'; // 'solid' or 'hardware'
+
+function setMode(mode) {
+  weightMode = mode;
+  document.getElementById('btn-solid').classList.toggle('active', mode === 'solid');
+  document.getElementById('btn-hardware').classList.toggle('active', mode === 'hardware');
+  document.getElementById('btn-hybrid').classList.toggle('active', mode === 'hybrid');
+  document.getElementById('solid-controls').style.display    = mode === 'solid'    ? '' : 'none';
+  document.getElementById('hardware-controls').style.display = mode === 'hardware' ? '' : 'none';
+  document.getElementById('hybrid-controls').style.display   = mode === 'hybrid'   ? '' : 'none';
+  update();
+}
+
+const matNotes = {
+  '7960,true':  'Corrosion-resistant, seawater-safe. Best choice for this application.',
+  '7850,true':  'Cheap and laser-cuttable on metal machines. Apply epoxy coat to prevent rust in seawater.',
+  '8500,false': 'Very dense — needs less volume. Check if your lab stocks brass sheet.',
+  '1190,true':  'Laser-cuttable but low density — needs large dimensions for meaningful ballast. Good for prototyping.',
+  '850,true':   'Easily laser-cut but lightest option. Absorbs water over time — seal with varnish/epoxy before deployment.',
+  '1920,true':  'Cheap and accessible. Must be sealed inside a 3D-printed annular shell (e.g. PETG/PLA). Uses saturated packed density (~1,920 kg/m³). Shell wall thickness will reduce effective sand volume — account for this in your design.',
+  '1240,true':  '3D-printable — convenient if laser cutter unavailable. Degrades slowly in seawater; coat with resin for longevity. Needs large dimensions for useful ballast mass.',
+  '2700,true':  'Moderate density — needs larger ring than steel. Corrosion-resistant but not ideal for ballast.',
+};
+
+function getInputs() {
+  const ro_diam_mm = parseFloat(document.getElementById('ro').value); // OD in mm
+  const ro_mm = ro_diam_mm / 2; // radius for calcs
+  const rh_mm    = parseFloat(document.getElementById('rh').value);
+  const nrings   = parseInt(document.getElementById('nrings').value);
+  const lElec_mm = parseFloat(document.getElementById('lElec-num').value) || 115;
+  const lAct_mm  = parseFloat(document.getElementById('lAct-num').value) || 213;
+  const lExt_mm  = parseFloat(document.getElementById('lExt-num').value) || 200;
+
+  let rho, laserOk, packingFrac = 1.0, hwUnitMass = 0, hwRhoBulk = 0;
+
+  if (weightMode === 'hybrid') {
+    // Fixed: 10 × M10×100 bolts+nuts = 720g
+    const BOLT_MASS_G = 720;
+    const BOLT_SHAFT_D = 10;   // mm, M10 shaft diameter
+    const hwOD_mm  = ro_diam_mm; // OD from main ring geometry slider
+    const hyb_h_mm = rh_mm * nrings; // same as ring height × stacked rings
+    const ID_MM    = 126;
+    const ri_m     = ID_MM / 2 / 1000;
+    const ro_m     = hwOD_mm / 2 / 1000;
+    const h_m      = hyb_h_mm / 1000;
+    // Groove volume
+    const V_groove = Math.PI * (ro_m**2 - ri_m**2) * h_m;
+    // Volume displaced by 10 bolt shafts (cylinders of d=10mm, length=groove radial depth)
+    const groove_radial_mm = (hwOD_mm - ID_MM) / 2; // radial depth of groove
+    const V_one_bolt = Math.PI * (BOLT_SHAFT_D/2/1000)**2 * (groove_radial_mm/1000);
+    const V_bolts  = 10 * V_one_bolt;
+    // Remaining volume for sand
+    const V_sand   = Math.max(0, V_groove - V_bolts);
+    const RHO_SAND = 1920;
+    const m_sand_kg= RHO_SAND * V_sand;
+    const m_total_g= BOLT_MASS_G + m_sand_kg * 1000;
+    rho     = m_total_g / 1000 / V_groove; // effective density of combined fill
+    laserOk = true;
+    packingFrac = 1.0; hwUnitMass = 0; hwRhoBulk = rho;
+    window._hyb = { hwOD_mm, hyb_h_mm, V_groove, V_bolts, V_sand, m_sand_g: m_sand_kg*1000, m_total_g, BOLT_MASS_G };
+  } else if (weightMode === 'hardware') {
+    const hwRho      = parseFloat(document.getElementById('hw-mat').value);
+    const hwSizeVal  = document.getElementById('hw-size').value.split(',');
+    const hwDiam_mm  = parseFloat(hwSizeVal[1]);   // bolt/nut nominal diameter mm
+    const boltSpacing_mm = hwDiam_mm * 13 / 8;    // approx across-flats + clearance (for hex)
+    hwUnitMass       = parseFloat(hwSizeVal[2]);   // g per bolt
+    const hwOD_mm    = ro_diam_mm; // OD from main ring geometry slider
+    const hwRows     = parseInt(document.getElementById('hw-rows').value);
+    const ID_MM      = 126; // fixed
+    const PCD_mm     = (ID_MM + hwOD_mm) / 2;
+    const PCD_circ   = Math.PI * PCD_mm;           // circumference of bolt circle
+    const boltsPerRow= Math.max(1, Math.floor(PCD_circ / boltSpacing_mm));
+    const totalBolts = boltsPerRow * hwRows;
+    const totalMass_g= totalBolts * hwUnitMass;
+    rho              = hwRho; // store bulk rho for CB/CM calc
+    laserOk          = true;
+    packingFrac      = 1.0;
+    hwRhoBulk        = hwRho;
+    // Store computed hw values for use in update()
+    window._hw = { hwOD_mm, PCD_mm, boltSpacing_mm, boltsPerRow, totalBolts, hwUnitMass, totalMass_g, hwRows, hwRho };
+  } else {
+    const matVal     = document.getElementById('mat').value;
+    const [rhoStr, laserStr] = matVal.split(',');
+    rho              = parseFloat(rhoStr);
+    laserOk          = laserStr === 'true';
+    packingFrac      = 1.0;
+    hwUnitMass       = 0;
+    hwRhoBulk        = rho;
+  }
+
+  return { ro_mm, rh_mm, nrings, rho, laserOk, lElec_mm, lAct_mm, lExt_mm, packingFrac, hwUnitMass, hwRhoBulk };
+}
+
+function update() {
+  const { ro_mm, rh_mm, nrings, rho, laserOk, lElec_mm, lAct_mm, lExt_mm, packingFrac, hwUnitMass, hwRhoBulk } = getInputs();
+
+  // Derived geometry from zone heights
+  const l_total_mm = lElec_mm + lAct_mm + lExt_mm;
+  const l_total    = l_total_mm / 1000;
+  const stroke_mm  = lExt_mm - PISTON_H_MM;
+  const stroke     = Math.max(stroke_mm, 0) / 1000;
+  const R_CYL_dyn  = 0.060;
+
+  // Sync slider <-> number box
+  document.getElementById('lElec').value     = lElec_mm;
+  document.getElementById('lAct').value      = lAct_mm;
+  document.getElementById('lExt').value      = lExt_mm;
+  document.getElementById('lElec-num').value = lElec_mm;
+  document.getElementById('lAct-num').value  = lAct_mm;
+  document.getElementById('lExt-num').value  = lExt_mm;
+
+  // Update derived summary cells
+  // Hull volume (non-uniform — compute preview values for dim table)
+  const WALL_m = 0.003;
+  const _R_TOP  = (0.120/2 + WALL_m);
+  const _R_SA_T = (0.140/2 + WALL_m);
+  const _R_SA_B = (0.161/2 + WALL_m);
+  const _R_EXT  = R_CYL_dyn + WALL_m;
+  const _lSA_top = Math.min(lAct_mm, 150) / 1000;
+  const _lSA_bot = Math.max(0, lAct_mm - 150) / 1000;
+  const V_hull_preview = Math.PI * _R_TOP**2  * (lElec_mm/1000)
+                       + Math.PI * _R_SA_T**2 * _lSA_top
+                       + Math.PI * _R_SA_B**2 * _lSA_bot
+                       + Math.PI * _R_EXT**2  * (lExt_mm/1000);
+  const V_swept_mL = Math.PI * R_CYL_dyn**2 * stroke * 1e6;
+  const V_disp_mL  = V_hull_preview * 1e6;
+  document.getElementById('td-total').textContent  = l_total_mm + ' mm';
+  document.getElementById('td-stroke').textContent = stroke_mm.toFixed(1) + ' mm';
+  document.getElementById('td-swept').textContent  = V_swept_mL.toFixed(0) + ' mL';
+  document.getElementById('td-disp').textContent   = V_disp_mL.toFixed(0) + ' mL';
+
+  // Recalculate CB and CM of system (no ring) using current zone heights
+  const z_ext_c  = lExt_mm / 2;
+  const z_act_c  = lExt_mm + lAct_mm / 2;
+  const z_elec_c = lExt_mm + lAct_mm + lElec_mm / 2;
+  // CM calculation — zones from bottom upward
+  // Bottom zone (ext cylinder): ext cyl, guide, motor, gearbox, piston
+  const m_bot  = M_EXT_CYL + M_GUIDE + M_MOTOR + M_GEARBOX + M_SCREW + M_LIMITS + M_PISTON + M_SMALL;
+  // Mid zone (sensor-actuator): both SA parts, sensors, actuator electronics, sealing
+  const m_mid  = M_SA_TOP + M_SA_BOT + (sensorsIncluded ? M_ECO + M_TEMP : 0) + M_MCBH + M_CONN + M_ORINGS + M_GREASE + M_BOLTS + M_CRADLE + M_LOCTITE + M_MOTDRV + M_LIMITS * 0;
+  // Top zone: top cap + electronics tube, electronics+power, GNSS, small prints
+  const m_top  = M_TOP_ELEC + M_MCU + M_SDCARD + M_DEPTH + M_HALL + M_BUCK + M_MOSFET + M_CHARGER + M_LIPOPRO + M_BATMON + M_PCB + M_WIRING + M_CELLS + M_HOLDER + M_XT60 + M_FOAM + M_GROMMET + (sensorsIncluded ? M_GNSS : 0);
+  const mzsum  = m_bot*z_ext_c + m_mid*z_act_c + m_top*z_elec_c;
+  const z_cm_sys = mzsum / M_SYS;
+  const z_cb     = l_total_mm / 2;
+
+  // V_DISP and STROKE now use local dynamic values
+  const V_DISP_dyn   = V_hull_preview;             // non-uniform hull
+  const V_swept_dyn  = Math.PI * R_CYL_dyn**2 * stroke;
+
+    // badges
+  document.getElementById('ro-val').textContent = weightMode === 'hardware' && window._hw
+    ? window._hw.hwOD_mm + ' mm (OD)'
+    : (ro_mm * 2).toFixed(0) + ' mm';
+  document.getElementById('rh-val').textContent = rh_mm + ' mm';
+  document.getElementById('nrings-val').textContent = nrings;
+  document.getElementById('mat-note').textContent = matNotes[document.getElementById('mat').value] || '';
+
+  // Hardware mode UI updates
+  if (weightMode === 'hardware' && window._hw) {
+    const h = window._hw;
+    // hw-od-val removed
+    document.getElementById('hw-rows-val').textContent = h.hwRows;
+    document.getElementById('hw-pcd').textContent      = h.PCD_mm.toFixed(1);
+    document.getElementById('hw-count').textContent    = h.boltsPerRow;
+    document.getElementById('hw-total').textContent    = h.totalBolts;
+    document.getElementById('hw-unit-mass').textContent= h.hwUnitMass.toFixed(1);
+    document.getElementById('hw-total-mass').textContent = h.totalMass_g.toFixed(0);
+  }
+
+  // Hybrid mode UI updates
+  if (weightMode === 'hybrid' && window._hyb) {
+    const b = window._hyb;
+    // hyb-od-val removed — OD now from main ring geometry
+    // hyb-h-val removed — uses ring height slider
+    document.getElementById('hyb-vgroove').textContent = (b.V_groove * 1e6).toFixed(1);
+    document.getElementById('hyb-vbolts').textContent  = (b.V_bolts  * 1e6).toFixed(1);
+    document.getElementById('hyb-vsand').textContent   = (b.V_sand   * 1e6).toFixed(1);
+    document.getElementById('hyb-msand').textContent   = b.m_sand_g.toFixed(0);
+    document.getElementById('hyb-total').textContent   = b.m_total_g.toFixed(0);
+  }
+
+  const ri = RI_RING;            // 0.063 m
+  const ro = ro_mm / 1000;
+  const rh = rh_mm / 1000;
+
+  let m_ring, V_ring_total;
+  if (weightMode === 'hybrid' && window._hyb) {
+    m_ring       = window._hyb.m_total_g / 1000;   // kg — bolts + sand
+    V_ring_total = window._hyb.V_groove;             // total groove volume
+  } else if (weightMode === 'hardware' && window._hw) {
+    m_ring       = window._hw.totalMass_g / 1000;  // kg — from bolt count × mass per bolt
+    V_ring_total = m_ring / window._hw.hwRho;
+  } else {
+    const V_one  = Math.PI * (ro**2 - ri**2) * rh;
+    const m_one  = rho * V_one;
+    m_ring       = m_one * nrings;
+    V_ring_total = V_one * nrings;
+  }
+  const h_total_mm = rh_mm * nrings;
+
+  // wall_mm only meaningful in solid mode
+  const wall_mm = weightMode === 'hardware'
+    ? (window._hw ? (window._hw.hwOD_mm - 126) / 2 : 0)
+    : ro_mm - 63;
+
+  // CM with ring: ring sits at bottom → z_ring = h_total/2 mm from bottom
+  const z_ring_mm = h_total_mm / 2;
+  const m_total = M_SYS + m_ring;
+  const z_cm_mm = (M_SYS * z_cm_sys + m_ring * z_ring_mm) / m_total;
+
+  const sep_mm = z_cb - z_cm_mm;
+  const sep_pct = (sep_mm / l_total_mm) * 100;
+
+  // Buoyancy: when piston extended → full volume displaced
+  // when piston retracted → full vol - piston swept vol (water fills cylinder)
+  const V_eff = pistonState === 'extended' ? V_DISP_dyn : (V_DISP_dyn - V_swept_dyn);
+  const F_buoy = RHO_SW * G * V_eff;
+  const net_buoy = F_buoy - m_total * G;
+
+  // ── Equilibrium piston position ──
+  // At neutral buoyancy: F_buoy = W_total  →  rho_sw * g * V_eff_eq = m_total * g
+  // V_eff_eq = m_total / rho_sw  (volume of water displaced at equilibrium)
+  // V_hull = full float volume; V_water_in_cyl = V_hull - V_eff_eq
+  // Piston sits at bottom; water fills gap between piston top and cylinder top.
+  // water column height in cyl = V_water_in_cyl / A_cyl
+  // x_eq (piston bottom from cyl bottom) = lExt_mm - (water_height_mm) - PISTON_H_MM
+  // Non-uniform hull: each zone has different OD (ID + 2*3mm wall)
+  const WALL = 0.003; // 3mm wall in metres
+  const R_TOP  = (0.120/2 + WALL); // top cap + elec: ID120 → OD126mm
+  const R_SA_T = (0.140/2 + WALL); // SA top (sensor): ID140 → OD146mm
+  const R_SA_B = (0.161/2 + WALL); // SA bot (actuator): ID161 → OD167mm
+  const R_EXT  = R_CYL_dyn + WALL; // ext cyl: ID120 → OD126mm
+  // Zone heights for hull calc (split lAct into sensor 150mm + actuator 63mm)
+  const lSA_top_mm = Math.min(lAct_mm, 150);
+  const lSA_bot_mm = Math.max(0, lAct_mm - 150);
+  const V_hull = Math.PI * R_TOP**2  * (lElec_mm/1000)
+               + Math.PI * R_SA_T**2 * (lSA_top_mm/1000)
+               + Math.PI * R_SA_B**2 * (lSA_bot_mm/1000)
+               + Math.PI * R_EXT**2  * (lExt_mm/1000);
+  const A_cyl  = Math.PI * R_CYL_dyn**2;             // m² cylinder cross-section (ext cyl only)
+
+  // Correct equilibrium: buoyancy = weight of dry system + weight of water inside cylinder
+  // RHO_SW*(V_hull - V_water) = (m_total + RHO_SW*V_water)*g  [cancel g]
+  // RHO_SW*V_hull - m_total = 2*RHO_SW*V_water
+  // V_water_eq = (RHO_SW*V_hull - m_total) / (2*RHO_SW)
+  const V_water_eq = (RHO_SW * V_hull - m_total) / (2 * RHO_SW);
+  const V_water_eq_mL = V_water_eq * 1e6;
+  const water_height_eq_mm = (V_water_eq / A_cyl) * 1000;
+
+  // Retracted: water floods from below piston (0 → stroke_mm height)
+  // x_eq = piston bottom from base of ext cyl = stroke_mm - water_height_eq_mm
+  // (water fills below piston when retracted)
+  const x_eq_mm = stroke_mm - water_height_eq_mm;
+
+  // Net force at each extreme (for context)
+  const V_water_retracted = (stroke_mm / 1000) * A_cyl;
+  const net_extended = RHO_SW * G * V_hull - m_total * G;                                      // no water in cyl
+  const net_retracted = RHO_SW * G * (V_hull - V_water_retracted) - (m_total + RHO_SW * V_water_retracted) * G;
+
+  // Valid if eq falls within stroke
+  const eq_valid = x_eq_mm >= 0 && x_eq_mm <= stroke_mm;
+  const eq_too_light = !eq_valid && net_retracted > 0;  // always floats even fully retracted
+  const eq_too_heavy = !eq_valid && net_extended < 0;   // always sinks even fully extended
+
+  // Status flags
+  const buoy_ok = net_buoy > 0;
+  const sep_ok  = sep_pct >= 5;
+  const sep_warn = sep_pct >= 2 && sep_pct < 5;
+  const wall_ok = wall_mm >= 3;
+  const laser_ok = laserOk;
+
+  function setMetric(id, stId, cls, stTxt) {
+    document.getElementById(id).className = 'metric ' + cls;
+    document.getElementById(stId).textContent = stTxt;
+  }
+
+  document.getElementById('out-mass').textContent = (m_ring * 1000).toFixed(0);
+  document.getElementById('out-buoy').textContent = net_buoy.toFixed(2);
+  document.getElementById('out-sep').textContent  = sep_pct.toFixed(1);
+  document.getElementById('out-cm').textContent   = z_cm_mm.toFixed(1);
+  document.getElementById('out-vol').textContent  = (V_ring_total * 1e6).toFixed(1);
+  document.getElementById('out-wall').textContent = wall_mm.toFixed(0);
+
+  setMetric('m-mass', 'st-mass',
+    m_ring > 0.05 ? 'ok' : 'warn',
+    m_ring > 5 ? '⚠ very heavy' : `total stacked = ${(m_ring*1000).toFixed(0)} g`);
+
+  setMetric('m-buoy', 'st-buoy',
+    buoy_ok ? (net_buoy < 2 ? 'warn' : 'ok') : 'bad',
+    buoy_ok ? (pistonState === 'extended' ? '✓ floats' : '✓ sinks (correct)') : '✗ cannot ascend');
+
+  setMetric('m-sep', 'st-sep',
+    sep_ok ? 'ok' : (sep_warn ? 'warn' : 'bad'),
+    sep_ok ? '✓ stable' : (sep_warn ? '⚠ marginal' : '✗ unstable (CM above CB)'));
+
+  setMetric('m-cm', 'st-cm',
+    sep_ok ? 'ok' : 'bad',
+    `CB at ${z_cb.toFixed(0)} mm`);
+
+  setMetric('m-vol', 'st-vol', 'ok',
+    weightMode === 'hardware' && window._hw
+      ? `${window._hw.totalBolts} bolts × ${window._hw.hwUnitMass.toFixed(1)} g`
+      : weightMode === 'hybrid' && window._hyb
+        ? `${(window._hyb.V_groove*1e6).toFixed(1)} cm³ groove`
+        : `${nrings}× ${(V_ring_total/nrings*1e6).toFixed(1)} cm³`);
+
+  setMetric('m-wall', 'st-wall',
+    (weightMode === 'hardware' || weightMode === 'hybrid') ? 'ok' : (wall_ok ? 'ok' : 'warn'),
+    weightMode === 'hardware'
+      ? `groove holds ~${hwUnitMass > 0 ? Math.round(m_ring*1000/hwUnitMass) : '?'} nuts`
+      : weightMode === 'hybrid' && window._hyb
+        ? `720g bolts + ${window._hyb.m_sand_g.toFixed(0)}g sand`
+        : (wall_ok ? '✓ machinable' : '⚠ too thin to laser-cut'));
+
+  // Equilibrium metrics
+  const eq_cls = eq_valid ? 'ok' : (eq_too_light ? 'warn' : 'bad');
+  document.getElementById('out-eq').textContent       = eq_valid ? x_eq_mm.toFixed(1) : '—';
+  document.getElementById('out-eq-pct').textContent   = eq_valid ? (x_eq_mm / stroke_mm * 100).toFixed(1) : '—';
+  document.getElementById('out-eq-water').textContent = V_water_eq_mL.toFixed(0);
+  document.getElementById('st-eq').textContent        = eq_valid
+    ? `from base of ext. cyl  (${(x_eq_mm/stroke_mm*100).toFixed(0)}% of stroke)`
+    : (eq_too_light
+      ? `⚠ always floats — net ${net_retracted.toFixed(1)} N up even fully retracted`
+      : `✗ always sinks — net ${Math.abs(net_extended).toFixed(1)} N down even fully extended`);
+  document.getElementById('st-eq-pct').textContent    = eq_valid
+    ? '0% = extended (float)  ·  100% = retracted (sink)'
+    : (eq_too_light ? `Add ~${((RHO_SW*V_hull - m_total - 2*RHO_SW*V_water_retracted)*1000/2).toFixed(0)} g more mass for EQ in stroke` : '—');
+  document.getElementById('st-eq-water').textContent  = eq_valid
+    ? 'in cyl. at neutral buoyancy'
+    : (eq_too_light ? `need ${V_water_eq_mL.toFixed(0)} mL, cyl. holds ${(V_water_retracted*1e6).toFixed(0)} mL max` : '—');
+  document.getElementById('m-eq').className       = 'metric ' + eq_cls;
+  document.getElementById('m-eq-pct').className   = 'metric ' + eq_cls;
+  document.getElementById('m-eq-water').className = 'metric ' + eq_cls;
+
+  // Verdict
+  const vEl = document.getElementById('verdict');
+  const stateLabel = pistonState === 'extended' ? 'float (piston extended)' : 'sink (piston retracted)';
+  if (!laser_ok && weightMode === 'solid') {
+    vEl.className = 'warn';
+    vEl.textContent = `⚠  Material may not be available on your laser cutter. Verify with lab before proceeding.`;
+  } else if (!buoy_ok && pistonState === 'extended') {
+    vEl.className = 'bad';
+    vEl.textContent = `✗  INVALID — ring too heavy. Float cannot ascend even with piston fully extended. Reduce r_o or h.`;
+  } else if (!sep_ok && !sep_warn) {
+    vEl.className = 'bad';
+    vEl.textContent = `✗  UNSTABLE — CM is above CB (sep = ${sep_pct.toFixed(1)}%). Increase ring mass or reduce h to lower CM.`;
+  } else if (sep_warn) {
+    vEl.className = 'warn';
+    vEl.textContent = `⚠  MARGINAL — CB–CM separation only ${sep_pct.toFixed(1)}%. Works but consider increasing r_o or adding a ring.`;
+  } else {
+    vEl.className = 'ok';
+    const hwSuffix = weightMode === 'hardware' && hwUnitMass > 0
+      ? (window._hw ? ` — ${window._hw.totalBolts} × ${document.getElementById('hw-size').value.split(',')[0]} bolts` : '')
+      : '';
+    vEl.textContent = `✓  VALID — ring mass ${(m_ring*1000).toFixed(0)} g${hwSuffix}, net buoyancy ${net_buoy.toFixed(2)} N (${stateLabel}), CB–CM sep ${sep_pct.toFixed(1)}% of L.`;
+  }
+
+  drawViz(ro_mm, rh_mm, nrings, z_cm_mm, z_ring_mm, lElec_mm, lAct_mm, lExt_mm, l_total_mm, z_cb, stroke_mm, x_eq_mm, eq_valid);
+  updateReport(ro_mm, rh_mm, nrings, rho, m_ring, V_ring_total, net_buoy, z_cm_mm, sep_pct, wall_mm, buoy_ok, sep_ok, l_total_mm, z_cb, z_cm_sys, stroke_mm, x_eq_mm, eq_valid, V_water_eq_mL, water_height_eq_mm, m_total, stroke, packingFrac, hwUnitMass);
+}
+
+function drawViz(ro_mm, rh_mm, nrings, z_cm_mm, z_ring_mm, lElec_mm, lAct_mm, lExt_mm, l_total_mm, z_cb, stroke_mm, x_eq_mm, eq_valid) {
+  const svg = document.getElementById('viz');
+  const W = 300, H = 480;
+  const CX = W / 2 + 20; // shift right to give ECO space on left
+
+  // Scale: more padding top + bottom to prevent clipping
+  const drawH = H - 90;
+  const scale = drawH / l_total_mm; // px per mm
+  const TOP_PAD = 40;
+
+  function yFromBottom(mm) { return TOP_PAD + drawH - mm * scale; }
+
+  // Zone boundaries in mm from bottom (dynamic)
+  const Y_EXT_TOP = lExt_mm;
+  const Y_ACT_TOP = lExt_mm + lAct_mm;
+  const Y_ELEC_TOP = l_total_mm;
+
+  const floatW = 90 * scale * 2; // ~should be 120mm wide
+  const HALF_W = 60 * scale; // half of 120mm
+
+  // map mm radius to px x-offset from CX
+  function rx(mm) { return mm * scale; }
+
+  let html = `
+    <!-- water bg -->
+    <rect width="${W}" height="${H}" fill="#e8f0f8"/>
+
+    <!-- float shadow -->
+    <rect x="${CX-HALF_W+3}" y="${yFromBottom(l_total_mm)-3}" width="${HALF_W*2}" height="${l_total_mm*scale+3}" rx="5" fill="rgba(0,0,0,0.08)"/>
+
+    <!-- zone: ext cylinder (bottom) — wet -->
+    <rect x="${CX-HALF_W}" y="${yFromBottom(lExt_mm)}" width="${HALF_W*2}" height="${lExt_mm*scale}" rx="0"
+      fill="#c8d8e8" stroke="#6090b0" stroke-width="1.5"/>
+
+    <!-- zone: sensor/actuator -->
+    <rect x="${CX-HALF_W}" y="${yFromBottom(lExt_mm + lAct_mm)}" width="${HALF_W*2}" height="${lAct_mm*scale}"
+      fill="#e0ddd6" stroke="#8a8070" stroke-width="1.5"/>
+
+    <!-- zone: electronics + top cap -->
+    <rect x="${CX-HALF_W}" y="${yFromBottom(l_total_mm)}" width="${HALF_W*2}" height="${lElec_mm*scale}"
+      fill="#dde0ea" stroke="#6870a0" stroke-width="1.5" rx="0"/>
+
+    <!-- GNSS dome on top -->
+    <ellipse cx="${CX}" cy="${yFromBottom(l_total_mm)}" rx="${HALF_W*0.7}" ry="10" fill="#d0d8ee" stroke="#6870a0" stroke-width="1"/>
+    <text x="${CX}" y="${yFromBottom(l_total_mm)-14}" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="7.5" fill="#6870a0">GNSS</text>
+
+    <!-- zone labels -->
+    <text x="${CX+HALF_W+6}" y="${yFromBottom(lExt_mm/2)}" font-family="IBM Plex Mono,monospace" font-size="7" fill="#6090b0">Ext. cyl</text>
+    <text x="${CX+HALF_W+6}" y="${yFromBottom(lExt_mm/2)+9}" font-family="IBM Plex Mono,monospace" font-size="7" fill="#6090b0">${lExt_mm} mm (wet)</text>
+    <text x="${CX+HALF_W+6}" y="${yFromBottom(lExt_mm + lAct_mm/2)}" font-family="IBM Plex Mono,monospace" font-size="7" fill="#8a8070">Sensor/Act</text>
+    <text x="${CX+HALF_W+6}" y="${yFromBottom(lExt_mm + lAct_mm/2)+9}" font-family="IBM Plex Mono,monospace" font-size="7" fill="#8a8070">${lAct_mm} mm</text>
+    <text x="${CX+HALF_W+6}" y="${yFromBottom(lExt_mm + lAct_mm + lElec_mm/2)}" font-family="IBM Plex Mono,monospace" font-size="7" fill="#6870a0">Electronics</text>
+    <text x="${CX+HALF_W+6}" y="${yFromBottom(lExt_mm + lAct_mm + lElec_mm/2)+9}" font-family="IBM Plex Mono,monospace" font-size="7" fill="#6870a0">${lElec_mm} mm</text>
+  `;
+
+  // ECO FLNTU sensor — protrudes RADIALLY outward from float side wall
+  // Sensor axis is horizontal. In cross-section:
+  //   block width (horizontal) = sensor length 127mm scaled → sticks out from wall
+  //   block height (vertical)  = sensor diameter 63mm scaled
+  //   optical windows on the outermost face (left side)
+  if (sensorsIncluded) {
+    const ECO_LEN_MM = 127;  // axial length → becomes horizontal width in diagram
+    const ECO_DIA_MM = 63;   // diameter → becomes vertical height in diagram
+    const ECO_W_PX   = ECO_LEN_MM * scale;  // horizontal extent outward
+    const ECO_H_PX   = ECO_DIA_MM * scale;  // vertical extent (height of block)
+    // Centre vertically in SA zone
+    const eco_z_mid  = lExt_mm + lAct_mm / 2;
+    const eco_z_top  = eco_z_mid + ECO_DIA_MM / 2;
+    const eco_z_bot  = eco_z_mid - ECO_DIA_MM / 2;
+    // Block starts at float left wall and extends outward (left)
+    const eco_x_right = CX - HALF_W;          // flush with float left wall
+    const eco_x_left  = eco_x_right - ECO_W_PX; // outermost face
+    const eco_y_top   = yFromBottom(eco_z_top);
+    html += `
+      <!-- ECO FLNTU body — radially outward from left wall -->
+      <rect x="${eco_x_left}" y="${eco_y_top}" width="${ECO_W_PX}" height="${ECO_H_PX}"
+        rx="2" fill="#4a7a5a" stroke="#2a5a3a" stroke-width="1"/>
+      <!-- Optical windows on outermost face -->
+      <circle cx="${eco_x_left + 5}" cy="${eco_y_top + ECO_H_PX * 0.35}" r="3.5"
+        fill="#7abf8a" stroke="#2a5a3a" stroke-width="0.8"/>
+      <circle cx="${eco_x_left + 5}" cy="${eco_y_top + ECO_H_PX * 0.65}" r="3.5"
+        fill="#7abf8a" stroke="#2a5a3a" stroke-width="0.8"/>
+      <!-- Label above block -->
+      <text x="${eco_x_left + ECO_W_PX/2}" y="${eco_y_top - 8}"
+        text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="6.5" fill="#2a5a3a" font-weight="600">ECO FLNTU</text>
+      <text x="${eco_x_left + ECO_W_PX/2}" y="${eco_y_top - 1}"
+        text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="6" fill="#4a7a5a">Ø63 × 127mm</text>
+    `;
+  }
+
+  // Piston: 35.6 mm tall disk
+  // Cylinder open end is at the BOTTOM (z=0), sealed end / bulkhead is at TOP (z=200mm).
+  // The leadscrew pushes the piston DOWN (away from centre) to extend, UP (toward centre) to retract.
+  //
+  // EXTENDED (floating): piston pushed to open end → piston bottom face at z=0, top at z=35.6mm
+  //   → piston occupies z=0..35.6mm, seawater ABOVE piston (35.6..200mm) is displaced outward
+  //   → large external volume → floats
+  //
+  // RETRACTED (sinking): piston pulled up to bulkhead → piston top at z=lExt_mm, bottom at z=lExt_mm-PISTON_H
+  //   → seawater floods in from below
+  //   → small external volume → sinks
+  const PISTON_H = PISTON_H_MM;
+  const pistonBot_mm = pistonState === 'extended' ? 0 : (lExt_mm - PISTON_H);
+  const pistonTop_mm = pistonBot_mm + PISTON_H;
+
+  if (pistonState === 'extended') {
+    // Seawater above piston (35.6mm → 200mm) — displaced outward, shown as flooded space
+    const waterBot = pistonTop_mm;
+    const waterTop = lExt_mm;
+    html += `
+      <rect x="${CX-HALF_W+2}" y="${yFromBottom(waterTop)}" width="${HALF_W*2-4}" height="${(waterTop-waterBot)*scale}"
+        fill="#a0c0e0" opacity="0.5"/>
+      <text x="${CX}" y="${yFromBottom((waterTop+waterBot)/2)+3}" text-anchor="middle"
+        font-family="IBM Plex Mono,monospace" font-size="7" fill="#4080a0">displaced</text>
+      <text x="${CX}" y="${yFromBottom((waterTop+waterBot)/2)+13}" text-anchor="middle"
+        font-family="IBM Plex Mono,monospace" font-size="7" fill="#4080a0">seawater</text>
+    `;
+  } else {
+    // Seawater below piston floods in (0mm → 164.4mm)
+    const waterTop = pistonBot_mm;
+    const waterBot = 0;
+    html += `
+      <rect x="${CX-HALF_W+2}" y="${yFromBottom(waterTop)}" width="${HALF_W*2-4}" height="${(waterTop-waterBot)*scale}"
+        fill="#a0c0e0" opacity="0.7"/>
+      <text x="${CX}" y="${yFromBottom(waterTop/2)+3}" text-anchor="middle"
+        font-family="IBM Plex Mono,monospace" font-size="7" fill="#4080a0">seawater</text>
+      <text x="${CX}" y="${yFromBottom(waterTop/2)+13}" text-anchor="middle"
+        font-family="IBM Plex Mono,monospace" font-size="7" fill="#4080a0">floods in</text>
+      <text x="${CX}" y="${yFromBottom(waterTop/2)+23}" text-anchor="middle"
+        font-family="IBM Plex Mono,monospace" font-size="7" fill="#4080a0">${stroke_mm.toFixed(0)} mm</text>
+    `;
+  }
+
+  // Piston body (35.6mm tall)
+  html += `
+    <rect x="${CX-HALF_W+4}" y="${yFromBottom(pistonTop_mm)}" width="${HALF_W*2-8}" height="${PISTON_H*scale}"
+      fill="#b0c8d8" stroke="#4a7898" stroke-width="1.5"/>
+    <text x="${CX}" y="${yFromBottom(pistonTop_mm - PISTON_H/2)+3}" text-anchor="middle"
+      font-family="IBM Plex Mono,monospace" font-size="7" fill="#4a7898" font-weight="600">PISTON</text>
+    <text x="${CX}" y="${yFromBottom(pistonTop_mm - PISTON_H/2)+13}" text-anchor="middle"
+      font-family="IBM Plex Mono,monospace" font-size="6.5" fill="#4a7898">35.6 mm</text>
+  `;
+
+  // Leadscrew — runs from piston top face up to actuator zone boundary at 200mm (bulkhead)
+  html += `<line x1="${CX}" y1="${yFromBottom(pistonTop_mm)}" x2="${CX}" y2="${yFromBottom(lExt_mm + lAct_mm)}"
+    stroke="#8a8070" stroke-width="1.5" stroke-dasharray="3 3"/>
+  <text x="${CX+4}" y="${yFromBottom(lExt_mm + lAct_mm/2)}" font-family="IBM Plex Mono,monospace" font-size="6.5" fill="#8a8070">leadscrew</text>`;
+
+  // Ballast ring(s) — drawn on OUTSIDE of cylinder at the bottom
+  // Ring sits at bottom of external cylinder (z=0 to z=ring_height)
+  const ri_px = rx(63); // inner radius always 63mm (ID=126mm)
+
+  if (weightMode === 'solid') {
+    const ro_px    = rx(ro_mm);
+    const ring_top_mm = rh_mm * nrings;
+    const ringH_px = Math.max(ring_top_mm * scale, 4);
+    // Ring protrudes OUTSIDE cylinder (beyond HALF_W)
+    html += `
+      <rect x="${CX-ro_px}" y="${yFromBottom(ring_top_mm)}" width="${ro_px - ri_px}" height="${ringH_px}"
+        fill="#c0392b" stroke="#8a2020" stroke-width="1"/>
+      <rect x="${CX+ri_px}" y="${yFromBottom(ring_top_mm)}" width="${ro_px - ri_px}" height="${ringH_px}"
+        fill="#c0392b" stroke="#8a2020" stroke-width="1"/>
+      <text x="${CX-ro_px-4}" y="${yFromBottom(ring_top_mm/2)+3}" text-anchor="end"
+        font-family="IBM Plex Mono,monospace" font-size="7" fill="#c0392b">ballast</text>
+      <text x="${CX-ro_px-4}" y="${yFromBottom(ring_top_mm/2)+12}" text-anchor="end"
+        font-family="IBM Plex Mono,monospace" font-size="7" fill="#c0392b">ring</text>
+    `;
+  } else if (weightMode === 'hybrid' && window._hyb) {
+    // ── Hybrid: groove outline + bolt dots + sand fill colour ──
+    const b       = window._hyb;
+    const od_px   = rx(b.hwOD_mm / 2);
+    const grooveH_px = Math.max(b.hyb_h_mm * scale, 6);
+    const yGrooveTop = yFromBottom(b.hyb_h_mm);
+    // Sand fill (tan colour) in groove
+    html += `
+      <rect x="${CX-od_px}" y="${yGrooveTop}" width="${od_px - ri_px}" height="${grooveH_px}"
+        fill="#c8a060" stroke="#8a6020" stroke-width="0.8"/>
+      <rect x="${CX+ri_px}" y="${yGrooveTop}" width="${od_px - ri_px}" height="${grooveH_px}"
+        fill="#c8a060" stroke="#8a6020" stroke-width="0.8"/>
+    `;
+    // Bolt dots on PCD (red circles)
+    const pcd_px  = rx((126 + b.hwOD_mm) / 2 / 2);
+    const boltR   = Math.max(rx(5), 2);
+    const yBolts  = yGrooveTop + grooveH_px / 2;
+    const nShow   = Math.min(3, Math.floor(10/2));
+    for (let i = 0; i < nShow; i++) {
+      const sp = (i - (nShow-1)/2) * boltR * 2.4;
+      html += `<circle cx="${CX-pcd_px+sp}" cy="${yBolts}" r="${boltR}" fill="#c0392b" stroke="#8a2020" stroke-width="0.8"/>`;
+      html += `<circle cx="${CX+pcd_px+sp}" cy="${yBolts}" r="${boltR}" fill="#c0392b" stroke="#8a2020" stroke-width="0.8"/>`;
+    }
+    html += `
+      <text x="${CX-od_px-4}" y="${yBolts-4}" text-anchor="end"
+        font-family="IBM Plex Mono,monospace" font-size="6.5" fill="#c0392b">bolts+</text>
+      <text x="${CX-od_px-4}" y="${yBolts+6}" text-anchor="end"
+        font-family="IBM Plex Mono,monospace" font-size="6.5" fill="#8a6020">sand</text>
+    `;
+  } else if (weightMode === 'hardware' && window._hw) {
+    // ── Hardware mode: draw bolts as circles on the PCD ──
+    // This is a cross-section view (vertical slice through centre).
+    // In cross-section, we see only the bolts that happen to land on the
+    // vertical centre plane — but to make it illustrative we show the
+    // PCD circle outline + representative bolt dots at ±PCD_radius from CX.
+    const h        = window._hw;
+    const pcd_px   = rx(h.PCD_mm / 2);        // PCD radius in px
+    const od_px    = rx(h.hwOD_mm / 2);        // groove OD radius in px
+    const ri_px    = rx(63);                    // groove ID radius in px
+    const boltR_px = Math.max(rx(h.hwUnitMass > 10 ? 6 : 4), 2); // bolt dot size
+    const yBolt    = yFromBottom(boltR_px / scale + boltR_px / scale); // near bottom
+
+    // Groove outline (where bolts sit) — thin dashed rect on each side
+    html += `
+      <rect x="${CX-od_px}" y="${yFromBottom(0) - 10}" width="${od_px - ri_px}" height="12"
+        fill="none" stroke="#c0392b" stroke-width="0.8" stroke-dasharray="3 2"/>
+      <rect x="${CX+ri_px}" y="${yFromBottom(0) - 10}" width="${od_px - ri_px}" height="12"
+        fill="none" stroke="#c0392b" stroke-width="0.8" stroke-dasharray="3 2"/>
+    `;
+
+    // Draw bolt circles on left and right of PCD in cross-section
+    // Show up to boltsPerRow/2 bolts visible in this slice (simplified to 3 each side max)
+    const visibleBolts = Math.min(Math.floor(h.boltsPerRow / 2), 4);
+    const yB = yFromBottom(0) - 5;
+    // Left side: bolts spread around PCD left half
+    for (let i = 0; i < visibleBolts; i++) {
+      const spread = (i - (visibleBolts-1)/2) * boltR_px * 2.5;
+      html += `<circle cx="${CX - pcd_px + spread}" cy="${yB}" r="${boltR_px}"
+        fill="#c0392b" stroke="#8a2020" stroke-width="0.8"/>`;
+    }
+    // Right side
+    for (let i = 0; i < visibleBolts; i++) {
+      const spread = (i - (visibleBolts-1)/2) * boltR_px * 2.5;
+      html += `<circle cx="${CX + pcd_px + spread}" cy="${yB}" r="${boltR_px}"
+        fill="#c0392b" stroke="#8a2020" stroke-width="0.8"/>`;
+    }
+    // PCD dashed circle line (just the visible slice — two vertical dashed lines)
+    html += `
+      <line x1="${CX-pcd_px}" y1="${yFromBottom(0)-12}" x2="${CX-pcd_px}" y2="${yFromBottom(0)+2}"
+        stroke="#c0392b" stroke-width="0.8" stroke-dasharray="2 2"/>
+      <line x1="${CX+pcd_px}" y1="${yFromBottom(0)-12}" x2="${CX+pcd_px}" y2="${yFromBottom(0)+2}"
+        stroke="#c0392b" stroke-width="0.8" stroke-dasharray="2 2"/>
+      <text x="${CX-od_px-4}" y="${yFromBottom(0)-3}" text-anchor="end"
+        font-family="IBM Plex Mono,monospace" font-size="7" fill="#c0392b">${h.totalBolts} bolts</text>
+      <text x="${CX-od_px-4}" y="${yFromBottom(0)+6}" text-anchor="end"
+        font-family="IBM Plex Mono,monospace" font-size="7" fill="#c0392b">on PCD</text>
+    `;
+  }
+
+  // Dimension callouts on left
+  // Total height
+  const yTop = yFromBottom(l_total_mm);
+  const yBot = yFromBottom(0);
+  html += `
+    <line x1="${CX-HALF_W-20}" y1="${yTop}" x2="${CX-HALF_W-20}" y2="${yBot}" stroke="#c0392b" stroke-width="0.7"/>
+    <line x1="${CX-HALF_W-23}" y1="${yTop}" x2="${CX-HALF_W-17}" y2="${yTop}" stroke="#c0392b" stroke-width="0.7"/>
+    <line x1="${CX-HALF_W-23}" y1="${yBot}" x2="${CX-HALF_W-17}" y2="${yBot}" stroke="#c0392b" stroke-width="0.7"/>
+    <text x="${CX-HALF_W-26}" y="${(yTop+yBot)/2+3}" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="7.5" fill="#c0392b" font-weight="600">${l_total_mm} mm</text>
+  `;
+
+  // Diameter callout at top
+  html += `
+    <line x1="${CX-HALF_W}" y1="${yTop-26}" x2="${CX+HALF_W}" y2="${yTop-26}" stroke="#1a4a8a" stroke-width="0.7"/>
+    <line x1="${CX-HALF_W}" y1="${yTop-23}" x2="${CX-HALF_W}" y2="${yTop-29}" stroke="#1a4a8a" stroke-width="0.7"/>
+    <line x1="${CX+HALF_W}" y1="${yTop-23}" x2="${CX+HALF_W}" y2="${yTop-29}" stroke="#1a4a8a" stroke-width="0.7"/>
+    <text x="${CX}" y="${yTop-30}" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="7.5" fill="#1a4a8a" font-weight="600">Ø120 mm</text>
+  `;
+
+  // Equilibrium piston position marker (blue dotted) — x_eq_mm from bottom of ext cyl
+  if (eq_valid) {
+    // piston bottom is at x_eq_mm from bottom of ext cylinder
+    // piston top is at x_eq_mm + PISTON_H_MM from bottom of ext cylinder
+    // show a line at piston top face (= where water surface meets piston)
+    const y_eq = yFromBottom(x_eq_mm + PISTON_H_MM);
+    html += `
+      <line x1="${CX-HALF_W-5}" y1="${y_eq}" x2="${CX+HALF_W+5}" y2="${y_eq}"
+        stroke="#1a4a8a" stroke-width="1.2" stroke-dasharray="6 3"/>
+      <text x="${CX-HALF_W-8}" y="${y_eq-3}" text-anchor="end"
+        font-family="IBM Plex Mono,monospace" font-size="7.5" fill="#1a4a8a" font-weight="600">EQ</text>
+      <text x="${CX-HALF_W-8}" y="${y_eq+8}" text-anchor="end"
+        font-family="IBM Plex Mono,monospace" font-size="6" fill="#1a4a8a">${x_eq_mm.toFixed(1)}mm</text>
+    `;
+  }
+
+  // CB line (green dashed)
+  const yCB = yFromBottom(z_cb);
+  html += `
+    <line x1="${CX-HALF_W-5}" y1="${yCB}" x2="${CX+HALF_W+5}" y2="${yCB}" stroke="#1a6a3a" stroke-width="1" stroke-dasharray="5 3"/>
+    <text x="${CX-HALF_W-8}" y="${yCB-3}" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="8" fill="#1a6a3a" font-weight="600">CB</text>
+  `;
+
+  // CM dot (red)
+  const yCM = yFromBottom(z_cm_mm);
+  html += `
+    <line x1="${CX-HALF_W-5}" y1="${yCM}" x2="${CX+HALF_W+5}" y2="${yCM}" stroke="#c0392b" stroke-width="1" stroke-dasharray="4 3"/>
+    <circle cx="${CX+HALF_W+12}" cy="${yCM}" r="5" fill="none" stroke="#c0392b" stroke-width="1.5"/>
+    <text x="${CX+HALF_W+22}" y="${yCM+3}" font-family="IBM Plex Mono,monospace" font-size="8" fill="#c0392b" font-weight="600">CM</text>
+  `;
+
+  // CB-CM arrow
+  if (Math.abs(yCB - yCM) > 10) {
+    const arrowX = CX + HALF_W + 12;
+    html += `
+      <line x1="${arrowX}" y1="${yCB}" x2="${arrowX}" y2="${yCM}" stroke="#888" stroke-width="0.8" stroke-dasharray="2 2"/>
+    `;
+  }
+
+  // Bottom label
+  html += `<text x="${CX}" y="${H-6}" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="7.5" fill="#8a837a">↓ bottom (ballast ring end)</text>`;
+
+  svg.innerHTML = html;
+}
+
+function updateReport(ro_mm, rh_mm, nrings, rho, m_ring, V_ring_total, net_buoy, z_cm_mm, sep_pct, wall_mm, buoy_ok, sep_ok, l_total_mm, z_cb, z_cm_sys, stroke_mm, x_eq_mm, eq_valid, V_water_eq_mL, water_height_eq_mm, m_total, stroke, packingFrac, hwUnitMass) {
+  const matEl = document.getElementById('mat');
+  const matTxt = matEl.options[matEl.selectedIndex].text.split('—')[0].trim();
+  const h_total = rh_mm * nrings;
+  const ok = buoy_ok && sep_ok;
+
+  document.getElementById('report').innerHTML =
+`<span class="hi">Ballast Ring — Worked Calculation</span>
+<span class="rule">────────────────────────────────────────────────</span>
+<span class="hi">1. Given dimensions</span>
+   Float total length  L = ${l_total_mm} mm
+   Float diameter      D = 120 mm
+   External cyl length   = 200 mm (bottom zone)
+   Piston stroke         = ${stroke_mm.toFixed(1)} mm
+
+<span class="hi">2. Ring geometry</span>
+   Inner diameter ID = 126 mm (fixed)
+   Outer diameter OD = <span class="val">${(ro_mm*2).toFixed(0)} mm</span>
+   Ring height   h   = <span class="val">${rh_mm} mm</span>  ×  ${nrings} ring(s)  =  ${h_total} mm total
+   Wall thickness    = (OD − ID) / 2 = ${wall_mm} mm
+
+<span class="hi">3. Material</span>
+   ${matTxt}  →  ρ = ${rho.toLocaleString()} kg/m³
+
+<span class="hi">4. Volume and mass</span>
+   V_ring = π·((OD/2)² − (ID/2)²)·h × n
+          = π·(${(ro_mm).toFixed(3)}² − 0.063²)·${(rh_mm/1000).toFixed(3)} × ${nrings}
+          = <span class="val">${(V_ring_total*1e6).toFixed(2)} cm³</span>
+
+   m_ring = ρ·V = ${rho.toLocaleString()} × ${(V_ring_total).toFixed(6)}
+          = <span class="val">${(m_ring*1000).toFixed(1)} g  =  ${m_ring.toFixed(4)} kg</span>
+
+<span class="hi">5. Centre of mass (z from bottom of float)</span>
+   System without ring CM:  z_sys  = ${z_cm_sys.toFixed(1)} mm  (PETG 15% infill estimate)
+   Ring centroid:           z_ring = h_total/2 = ${(h_total/2).toFixed(1)} mm
+   m_sys = ${(M_SYS*1000).toFixed(0)} g
+
+   z_CM = (m_sys·z_sys + m_ring·z_ring) / (m_sys + m_ring)
+        = (${(M_SYS*1000).toFixed(0)}·${z_cm_sys.toFixed(1)} + ${(m_ring*1000).toFixed(1)}·${(h_total/2).toFixed(1)})
+          / (${(M_SYS*1000).toFixed(0)} + ${(m_ring*1000).toFixed(1)})
+        z_CB = L/2 = ${z_cb.toFixed(1)} mm from bottom
+        = <span class="val">${z_cm_mm.toFixed(1)} mm from bottom</span>
+
+   z_CB = L/2 = 303.5 mm from bottom  (centroid of displaced volume)
+
+   CB − CM separation = ${(z_cb-z_cm_mm).toFixed(1)} mm  =  <span class="${sep_pct>=5?'good':'bad'}">${sep_pct.toFixed(1)}% of L  ${sep_pct>=5?'✓ stable':'✗ unstable'}</span>
+
+<span class="hi">6. Buoyancy check (piston extended)</span>
+   Total displacement V = π·(0.06)²·${(l_total_mm/1000).toFixed(3)} = ${(Math.PI*0.06**2*(l_total_mm/1000)*1e6).toFixed(0)} cm³ = ${(Math.PI*0.06**2*(l_total_mm/1000)*1e3).toFixed(3)} L
+   F_buoy = ρ_sw·g·V = 1025·9.81·${(Math.PI*0.06**2*(l_total_mm/1000)).toFixed(4)} = ${(RHO_SW*G*Math.PI*0.06**2*(l_total_mm/1000)).toFixed(2)} N
+   Weight  = (m_sys + m_ring)·g = ${((M_SYS+m_ring)*G).toFixed(2)} N
+   Net     = <span class="${net_buoy>0?'good':'bad'}">${net_buoy.toFixed(2)} N  →  ${net_buoy>0?'float ascends ✓':'cannot ascend ✗'}</span>
+
+<span class="hi">7. Equilibrium piston position</span>
+   At neutral buoyancy: F_buoy = W_total
+   V_displaced_needed = m_total / ρ_sw = ${(m_total/RHO_SW*1e6).toFixed(0)} cm³
+   V_water_in_cyl at eq = V_hull − V_displaced = ${V_water_eq_mL.toFixed(0)} mL
+   Water column height = V_water / A_cyl = ${water_height_eq_mm.toFixed(1)} mm
+   x_eq (piston bottom from cyl. bottom) = <span class="val">${eq_valid ? x_eq_mm.toFixed(1) : 'N/A'} mm</span>
+   As % of stroke = <span class="val">${eq_valid ? (x_eq_mm/(stroke*1000)*100).toFixed(1) : 'N/A'}%</span>  (0% = fully extended, 100% = fully retracted)
+   → Control system setpoint: piston at <span class="val">${eq_valid ? x_eq_mm.toFixed(1) : 'N/A'} mm</span> from bottom of external cylinder
+
+<span class="hi">8. Verdict</span>
+   <span class="${ok?'good':'bad'}">${ok ? '✓  Design satisfies buoyancy and CB > CM stability constraints.' : '✗  Adjust r_o, h, or number of rings.'}</span>`;
+}
+
+// Wire inputs
+// Sliders update number boxes, number boxes update sliders — both call update()
+['lElec','lAct','lExt'].forEach(id => {
+  const slider = document.getElementById(id);
+  const numbox = document.getElementById(id + '-num');
+  slider.addEventListener('input', () => { numbox.value = slider.value; update(); });
+  numbox.addEventListener('input', () => {
+    const v = parseFloat(numbox.value);
+    if (!isNaN(v)) { slider.value = Math.min(Math.max(v, parseFloat(slider.min)), parseFloat(slider.max)); }
+    update();
+  });
+  numbox.addEventListener('change', () => {
+    // clamp on blur/enter
+    const mn = parseFloat(numbox.min), mx = parseFloat(numbox.max);
+    const v = Math.min(Math.max(parseFloat(numbox.value) || mn, mn), mx);
+    numbox.value = v; slider.value = v; update();
+  });
+});
+['ro','rh','nrings','mat','hw-mat','hw-size','hw-rows'].forEach(id => document.getElementById(id).addEventListener('input', update));
+update();
+</script>
+</body>
+</html>
